@@ -6,14 +6,15 @@ from django.shortcuts import get_list_or_404
 from rest_framework import serializers
 
 from users.serializers import UserSerializer
-from .models import Ingredient, Recipe, RecipeIngredient, Tag
+from .models import Favorite, Ingredient, Recipe, RecipeIngredient, Tag
 
 INGREDIENS_KEY_ERROR = 'Поле ingredients обязательно'
-INGREDIENT_NOT_CORRECT = 'Каждый ингредиент должен содержать поля : id и amount'
+INGREDIENT_NOT_CORRECT = 'Каждый ингредиент должен содержать поля : id, amount'
 INGREDIENT_NOT_FOUND = 'Ингредиент с id = {} не существует'
 SAME_INGREDIENT = 'Ингредиент с id = {} добавлен дважды'
 TAGS_KEY_ERROR = 'Поле tags обязательно'
 TAG_NOT_FOUND = 'Тег с id = {} не существует'
+RECIPE_IN_FAVORITES = 'Рецепт уже есть в избранном'
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -39,22 +40,14 @@ class Base64ToFile(serializers.ImageField):
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
-    name = serializers.SerializerMethodField()
-    measurement_unit = serializers.SerializerMethodField()
+    id = serializers.ReadOnlyField(source='ingredient.id')
+    name = serializers.ReadOnlyField(source='ingredient.name')
+    measurement_unit = serializers.ReadOnlyField(
+        source='ingredient.measurement_unit')
 
     class Meta:
         model = RecipeIngredient
         fields = ('id', 'name', 'measurement_unit', 'amount')
-
-    def get_id(self, obj):
-        return obj.ingredient.id
-
-    def get_name(self, obj):
-        return obj.ingredient.name
-
-    def get_measurement_unit(self, obj):
-        return obj.ingredient.measurement_unit
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -120,3 +113,38 @@ class RecipeSerializer(serializers.ModelSerializer):
             RecipeIngredient.objects.create(
                 amount=amount, ingredient=ingredient, recipe=recipe)
         return recipe
+
+    def update(self, instance, validated_data):
+        ingredients = self.list_ingredients(self.initial_data)
+        tags = self.list_tags(self.initial_data)
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.image = validated_data.get('image', instance.image)
+        instance.cooking_time = validated_data.get(
+            'cooking_time', instance.cooking_time)
+        instance.tags.set(tags)
+        instance.save()
+        recipeingredients = get_list_or_404(RecipeIngredient, recipe=instance)
+        for object in recipeingredients:
+            object.delete()
+        for ingredient, amount in ingredients:
+            RecipeIngredient.objects.create(
+                amount=amount, ingredient=ingredient, recipe=instance)
+        return instance
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='recipe.id')
+    name = serializers.ReadOnlyField(source='recipe.name')
+    image = serializers.ReadOnlyField(source='recipe.image')
+    cooking_time = serializers.ReadOnlyField(source='recipe.cooking_time')
+
+    class Meta:
+        model = Favorite
+        fields = ('id', 'name', 'image', 'cooking_time')
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Favorite.objects.all(),
+                fields=('name', 'owner'),
+                message=RECIPE_IN_FAVORITES)
+        ]
