@@ -14,7 +14,6 @@ INGREDIENT_NOT_FOUND = 'Ингредиент с id = {} не существуе�
 SAME_INGREDIENT = 'Ингредиент с id = {} добавлен дважды'
 TAGS_KEY_ERROR = 'Поле tags обязательно'
 TAG_NOT_FOUND = 'Тег с id = {} не существует'
-RECIPE_IN_FAVORITES = 'Рецепт уже есть в избранном'
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -65,7 +64,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time')
 
     def get_is_favorited(self, obj):
-        return False
+        user = self.context.get('request').user
+        return user.is_authenticated and Favorite.objects.filter(
+            recipe=obj, user=user).exists()
 
     def get_is_in_shopping_cart(self, obj):
         return False
@@ -136,15 +137,9 @@ class RecipeSerializer(serializers.ModelSerializer):
 class FavoriteSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='recipe.id')
     name = serializers.ReadOnlyField(source='recipe.name')
-    image = serializers.ReadOnlyField(source='recipe.image')
+    image = Base64ToFile(source='recipe.image', read_only=True)
     cooking_time = serializers.ReadOnlyField(source='recipe.cooking_time')
 
     class Meta:
         model = Favorite
         fields = ('id', 'name', 'image', 'cooking_time')
-        validators = [
-            serializers.UniqueTogetherValidator(
-                queryset=Favorite.objects.all(),
-                fields=('name', 'owner'),
-                message=RECIPE_IN_FAVORITES)
-        ]
