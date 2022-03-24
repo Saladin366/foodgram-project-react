@@ -66,3 +66,15 @@ class Favorite(models.Model):
         constraints = [models.UniqueConstraint(
             fields=['user', 'recipe'], name='unique_favorite')
         ]
+
+
+class Cart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             related_name='shopping_cart')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE,
+                               related_name='shopping_cart')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['user', 'recipe'], name='unique_cart')
+        ]

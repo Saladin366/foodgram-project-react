@@ -4,9 +4,15 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
-from .models import User
-from .serializers import CreateUserSerializer, UserSerializer
+from .models import Subscribe, User
+from .serializers import (CreateUserSerializer, SubscribeSerializer,
+                          UserSerializer)
+
+SUBSCRIBE_EXIST = 'Вы уже подписаны на данного автора'
+SUBSCRIBE_NOT_EXIST = 'Вы не подписаны на данного автора'
+SUBSCRIBE_TO_MYSELF = 'Нельзя подписать на самого себя'
 
 
 class CreateListRetrieve(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -30,6 +36,8 @@ class UserViewSet(CreateListRetrieve):
             return CreateUserSerializer
         if self.action == 'set_password':
             return SetPasswordSerializer
+        if self.action == 'subscribe' or self.action == 'subscriptions':
+            return SubscribeSerializer
         return UserSerializer
 
     @action(detail=False)
@@ -46,3 +54,33 @@ class UserViewSet(CreateListRetrieve):
             self.request.user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=('POST', 'DELETE'), detail=False,
+            url_path=r'(?P<id>\d+)/subscribe')
+    def subscribe(self, request, id):
+        user = request.user
+        author = get_object_or_404(User, id=id)
+        if user == author:
+            raise ValidationError(SUBSCRIBE_TO_MYSELF)
+        if request.method == 'DELETE':
+            object = Subscribe.objects.filter(author=author, user=user).first()
+            if object is None:
+                raise ValidationError(SUBSCRIBE_NOT_EXIST)
+            object.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        if Subscribe.objects.filter(author=author, user=user).exists():
+            raise ValidationError(SUBSCRIBE_EXIST)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=user, author=author)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False)
+    def subscriptions(self, request):
+        objects = Subscribe.objects.filter(user=request.user)
+        page = self.paginate_queryset(objects)
+        if page:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(objects, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

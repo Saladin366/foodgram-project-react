@@ -6,7 +6,7 @@ from django.shortcuts import get_list_or_404
 from rest_framework import serializers
 
 from users.serializers import UserSerializer
-from .models import Favorite, Ingredient, Recipe, RecipeIngredient, Tag
+from .models import Cart, Favorite, Ingredient, Recipe, RecipeIngredient, Tag
 
 INGREDIENS_KEY_ERROR = 'Поле ingredients обязательно'
 INGREDIENT_NOT_CORRECT = 'Каждый ингредиент должен содержать поля : id, amount'
@@ -69,7 +69,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             recipe=obj, user=user).exists()
 
     def get_is_in_shopping_cart(self, obj):
-        return False
+        user = self.context.get('request').user
+        return user.is_authenticated and Cart.objects.filter(
+            recipe=obj, user=user).exists()
 
     def list_ingredients(self, initial_data):
         ingredients_id = initial_data.pop('ingredients', None)
@@ -137,9 +139,20 @@ class RecipeSerializer(serializers.ModelSerializer):
 class FavoriteSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='recipe.id')
     name = serializers.ReadOnlyField(source='recipe.name')
-    image = Base64ToFile(source='recipe.image', read_only=True)
+    image = serializers.ImageField(source='recipe.image', read_only=True)
     cooking_time = serializers.ReadOnlyField(source='recipe.cooking_time')
 
     class Meta:
         model = Favorite
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class CartSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='recipe.id')
+    name = serializers.ReadOnlyField(source='recipe.name')
+    image = serializers.ImageField(source='recipe.image', read_only=True)
+    cooking_time = serializers.ReadOnlyField(source='recipe.cooking_time')
+
+    class Meta:
+        model = Cart
         fields = ('id', 'name', 'image', 'cooking_time')

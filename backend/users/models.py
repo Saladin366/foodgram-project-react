@@ -12,3 +12,15 @@ class User(AbstractUser):
         ordering = ['id']
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+
+class Subscribe(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             related_name='follower')
+    author = models.ForeignKey(User, on_delete=models.CASCADE,
+                               related_name='following')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['user', 'author'], name='unique_subscribe')
+        ]
