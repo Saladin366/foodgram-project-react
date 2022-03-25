@@ -1,14 +1,16 @@
+from django.db.models import Sum
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_list_or_404, get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from .filters import RecipeFilter
-from .models import Cart, Favorite, Ingredient, Recipe, Tag
+from .models import Cart, Favorite, Ingredient, Recipe, RecipeIngredient, Tag
 from .permissions import IsAdminOrOwner
 from .serializers import (CartSerializer, FavoriteSerializer,
                           IngredientSerializer, RecipeSerializer,
@@ -80,6 +82,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return self.favorite_or_cart(request, id, Cart, NOT_IN_CART,
                                      RECIPE_IN_CART, CartSerializer)
 
-    @action(detail=False)
+    @action(detail=False, permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        return Response('Ok')
+        cart = RecipeIngredient.objects.filter(
+            recipe__shopping_cart__user=request.user).values(
+                'ingredient__name', 'ingredient__measurement_unit').annotate(
+                    count=Sum('amount'))
+        response = HttpResponse(content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename="cart.txt"'
+        for ingredient in cart:
+            row = '{} - {} {}\n'.format(
+                ingredient['ingredient__name'],
+                ingredient['count'],
+                ingredient['ingredient__measurement_unit'])
+            response.write(row)
+        return response

@@ -14,7 +14,7 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
 
 
-class Subscribe(models.Model):
+class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,
                              related_name='follower')
     author = models.ForeignKey(User, on_delete=models.CASCADE,

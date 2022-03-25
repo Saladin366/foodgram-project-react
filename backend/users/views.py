@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from .models import Subscribe, User
+from .models import Subscription, User
 from .serializers import (CreateUserSerializer, SubscribeSerializer,
                           UserSerializer)
 
@@ -63,12 +63,13 @@ class UserViewSet(CreateListRetrieve):
         if user == author:
             raise ValidationError(SUBSCRIBE_TO_MYSELF)
         if request.method == 'DELETE':
-            object = Subscribe.objects.filter(author=author, user=user).first()
+            object = Subscription.objects.filter(author=author,
+                                                 user=user).first()
             if object is None:
                 raise ValidationError(SUBSCRIBE_NOT_EXIST)
             object.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        if Subscribe.objects.filter(author=author, user=user).exists():
+        if Subscription.objects.filter(author=author, user=user).exists():
             raise ValidationError(SUBSCRIBE_EXIST)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -77,7 +78,7 @@ class UserViewSet(CreateListRetrieve):
 
     @action(detail=False)
     def subscriptions(self, request):
-        objects = Subscribe.objects.filter(user=request.user)
+        objects = Subscription.objects.filter(user=request.user)
         page = self.paginate_queryset(objects)
         if page:
             serializer = self.get_serializer(page, many=True)
