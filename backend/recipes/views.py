@@ -1,11 +1,13 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_list_or_404, get_object_or_404
-from rest_framework import mixins, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
+from .filters import RecipeFilter
 from .models import Cart, Favorite, Ingredient, Recipe, Tag
 from .permissions import IsAdminOrOwner
 from .serializers import (CartSerializer, FavoriteSerializer,
@@ -34,12 +36,16 @@ class IngredientViewSet(ListRetrieve):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('^name',)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (IsAuthenticatedOrReadOnly, IsAdminOrOwner)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -73,3 +79,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, id):
         return self.favorite_or_cart(request, id, Cart, NOT_IN_CART,
                                      RECIPE_IN_CART, CartSerializer)
+
+    @action(detail=False)
+    def download_shopping_cart(self, request):
+        return Response('Ok')

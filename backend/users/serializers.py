@@ -12,7 +12,7 @@ class CreateUserSerializer(UserCreateSerializer):
                   'password')
 
 
-class UserSerializer(CreateUserSerializer):
+class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
