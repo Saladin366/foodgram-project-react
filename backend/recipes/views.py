@@ -52,20 +52,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    def favorite_or_cart(self, request, id, model, mes_not_in, mes_in, ser):
+    def favorite_or_cart(self, request, id, model, message_not_in, message_in,
+                         class_serializer):
         user = request.user
         recipe = get_object_or_404(Recipe, id=id)
         if request.method == 'DELETE':
             object = model.objects.filter(recipe=recipe, user=user).first()
             if object is None:
-                raise ValidationError(mes_not_in)
+                raise ValidationError(message_not_in)
             object.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         if model.objects.filter(recipe=recipe, user=user).exists():
-            raise ValidationError(mes_in)
-        serializer = ser(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=user, recipe=recipe)
+            raise ValidationError(message_in)
+        serializer = class_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=user, recipe=recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=('POST', 'DELETE'), detail=False,

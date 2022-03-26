@@ -46,14 +46,14 @@ class UserViewSet(CreateListRetrieve):
         serializer = self.get_serializer(user)
         return Response(serializer.data)
 
-    @action(['post'], detail=False)
+    @action(methods=('POST',), detail=False)
     def set_password(self, request):
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.request.user.set_password(serializer.data['new_password'])
-            self.request.user.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        self.request.user.set_password(
+            serializer.validated_data['new_password'])
+        self.request.user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=('POST', 'DELETE'), detail=False,
             url_path=r'(?P<id>\d+)/subscribe')
@@ -63,8 +63,8 @@ class UserViewSet(CreateListRetrieve):
         if user == author:
             raise ValidationError(SUBSCRIBE_TO_MYSELF)
         if request.method == 'DELETE':
-            object = Subscription.objects.filter(author=author,
-                                                 user=user).first()
+            object = Subscription.objects.filter(
+                author=author, user=user).first()
             if object is None:
                 raise ValidationError(SUBSCRIBE_NOT_EXIST)
             object.delete()
@@ -72,8 +72,8 @@ class UserViewSet(CreateListRetrieve):
         if Subscription.objects.filter(author=author, user=user).exists():
             raise ValidationError(SUBSCRIBE_EXIST)
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=user, author=author)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=user, author=author)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False)

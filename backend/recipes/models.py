@@ -35,11 +35,14 @@ class Recipe(models.Model):
     text = models.TextField('Описание', max_length=200)
     image = models.ImageField('Картинка', upload_to='recipes/images/')
     cooking_time = models.IntegerField('Время приготовления (в минутах)')
-    tags = models.ManyToManyField(Tag, related_name='recipes')
+    tags = models.ManyToManyField(
+        Tag, related_name='recipes', verbose_name='Теги')
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='recipes')
+        User, on_delete=models.CASCADE, related_name='recipes',
+        verbose_name='Автор')
     ingredients = models.ManyToManyField(
-        Ingredient, related_name='recipes', through='RecipeIngredient')
+        Ingredient, related_name='recipes', through='RecipeIngredient',
+        verbose_name='Ингредиенты')
 
     class Meta:
         ordering = ['-id']
@@ -52,8 +55,16 @@ class Recipe(models.Model):
 
 class RecipeIngredient(models.Model):
     amount = models.IntegerField('Количество')
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(
+        Ingredient, on_delete=models.CASCADE, verbose_name='Ингредиент')
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+
+    def __str__(self):
+        return self.ingredient.name
 
 
 class Favorite(models.Model):
