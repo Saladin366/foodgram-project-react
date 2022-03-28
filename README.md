@@ -78,21 +78,15 @@ docker-compose exec backend python add_data.py
 
 Перейти по ссылке:
 
-```
 http://localhost/
-```
 
 Документация к API:
 
-```
 http://localhost/api/docs/
-```
 
 Админ панель:
 
-```
 http://localhost/admin/
-```
 
 ## Проект доступен по адресу:
 
