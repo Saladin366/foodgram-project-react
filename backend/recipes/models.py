@@ -1,6 +1,7 @@
 from django.db import models
 
 from users.models import User
+from .validators import validate_amount, validate_time
 
 
 class Tag(models.Model):
@@ -34,7 +35,8 @@ class Recipe(models.Model):
     name = models.CharField('Название', max_length=200)
     text = models.TextField('Описание', max_length=200)
     image = models.ImageField('Картинка', upload_to='recipes/images/')
-    cooking_time = models.IntegerField('Время приготовления (в минутах)')
+    cooking_time = models.IntegerField(
+        'Время приготовления (в минутах)', validators=[validate_time])
     tags = models.ManyToManyField(
         Tag, related_name='recipes', verbose_name='Теги')
     author = models.ForeignKey(
@@ -54,7 +56,7 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    amount = models.IntegerField('Количество')
+    amount = models.IntegerField('Количество', validators=[validate_amount])
     ingredient = models.ForeignKey(
         Ingredient, on_delete=models.CASCADE, verbose_name='Ингредиент')
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
