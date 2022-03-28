@@ -11,9 +11,12 @@ from .models import Cart, Favorite, Ingredient, Recipe, RecipeIngredient, Tag
 INGREDIENS_KEY_ERROR = 'Поле ingredients обязательно'
 INGREDIENT_NOT_CORRECT = 'Каждый ингредиент должен содержать поля : id, amount'
 INGREDIENT_NOT_FOUND = 'Ингредиент с id = {} не существует'
-SAME_INGREDIENT = 'Ингредиент с id = {} добавлен дважды'
+SAME_INGREDIENT = 'Ингредиент {} добавлен дважды'
 TAGS_KEY_ERROR = 'Поле tags обязательно'
 TAG_NOT_FOUND = 'Тег с id = {} не существует'
+CHECK_TIME = 'Время приготовления должно быть больше нуля'
+CHECK_AMOUNT = 'Ингредиент {}: Количество должно быть больше нуля'
+CHECK_AMOUNT_FORMAT = 'Ингредиент {}: Введите правильное число'
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -63,6 +66,11 @@ class RecipeSerializer(serializers.ModelSerializer):
             'id', 'tags', 'author', 'ingredients', 'is_favorited',
             'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time')
 
+    def validate_cooking_time(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(CHECK_TIME)
+        return value
+
     def get_ingredients(self, obj):
         objects = RecipeIngredient.objects.filter(recipe=obj)
         serializer = IngredientInRecipeSerializer(objects, many=True)
@@ -89,13 +97,22 @@ class RecipeSerializer(serializers.ModelSerializer):
             amount = ingredient_id.get('amount', None)
             if id is None or amount is None:
                 raise serializers.ValidationError(INGREDIENT_NOT_CORRECT)
-            if id in ids:
-                raise serializers.ValidationError(SAME_INGREDIENT.format(id))
-            ids.add(id)
             ingredient = Ingredient.objects.filter(id=id).first()
             if ingredient is None:
                 raise serializers.ValidationError(
                     INGREDIENT_NOT_FOUND.format(id))
+            if id in ids:
+                raise serializers.ValidationError(
+                    SAME_INGREDIENT.format(ingredient.name))
+            ids.add(id)
+            try:
+                amount = int(amount)
+            except ValueError:
+                raise serializers.ValidationError(
+                    CHECK_AMOUNT_FORMAT.format(ingredient.name))
+            if amount <= 0:
+                raise serializers.ValidationError(
+                    CHECK_AMOUNT.format(ingredient.name))
             ingredients.append((ingredient, amount))
         return ingredients
 

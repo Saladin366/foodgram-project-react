@@ -79,6 +79,8 @@ class UserViewSet(CreateListRetrieve):
     @action(detail=False)
     def subscriptions(self, request):
         objects = Subscription.objects.filter(user=request.user)
+        if not objects:
+            return Response(status=status.HTTP_200_OK)
         page = self.paginate_queryset(objects)
         if page:
             serializer = self.get_serializer(page, many=True)

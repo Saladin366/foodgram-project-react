@@ -8,7 +8,7 @@ services:
     env_file:
       - ./.env
   backend:
-    image: saladin366/foodgram_backend
+    build: ../backend
     restart: always
     volumes:
       - static_value:/app/static/
@@ -19,7 +19,7 @@ services:
       - ./.env
   
   frontend:
-    image: saladin366/foodgram_frontend
+    build: ../frontend
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
