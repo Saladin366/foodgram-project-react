@@ -93,9 +93,3 @@ http://localhost/admin/
 http://51.250.19.31/
 
 http://51.250.19.31/api/docs/
-
-http://51.250.19.31/admin/
-
-Логин: superadmin
-
-Пароль: superpassword
