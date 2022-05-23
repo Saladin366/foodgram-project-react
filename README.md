@@ -87,9 +87,3 @@ http://localhost/api/docs/
 Админ панель:
 
 http://localhost/admin/
-
-## Развёрнутый проект доступен по адресу:
-
-http://51.250.19.31/
-
-http://51.250.19.31/api/docs/
